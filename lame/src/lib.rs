@@ -38,6 +38,22 @@ fn handle_simple_error(retn: c_int) -> Result<(), Error> {
     }
 }
 
+fn handle_encode_error(retn: c_int) -> Result<usize, EncodeError> {
+    match retn.into() {
+        -1 => Err(EncodeError::OutputBufferTooSmall),
+        -2 => Err(EncodeError::NoMem),
+        -3 => Err(EncodeError::InitParamsNotCalled),
+        -4 => Err(EncodeError::PsychoAcousticError),
+        _ => {
+            if retn < 0 {
+                Err(EncodeError::Unknown(retn))
+            } else {
+                Ok(retn as usize)
+            }
+        }
+    }
+}
+
 fn int_size(sz: usize) -> c_int {
     if sz > c_int::MAX as usize {
         panic!("converting to c_int would overflow");
@@ -148,20 +164,7 @@ impl Lame {
                                     pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
                                     mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
         };
-
-        match retn {
-            -1 => Err(EncodeError::OutputBufferTooSmall),
-            -2 => Err(EncodeError::NoMem),
-            -3 => Err(EncodeError::InitParamsNotCalled),
-            -4 => Err(EncodeError::PsychoAcousticError),
-            _ => {
-                if retn < 0 {
-                    Err(EncodeError::Unknown(retn))
-                } else {
-                    Ok(retn as usize)
-                }
-            }
-        }
+        handle_encode_error(retn)
     }
 
     pub fn encode_float(&mut self, pcm_left: &[f32], pcm_right: &[f32], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
@@ -174,39 +177,13 @@ impl Lame {
                                     pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
                                     mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
         };
-
-        match retn {
-            -1 => Err(EncodeError::OutputBufferTooSmall),
-            -2 => Err(EncodeError::NoMem),
-            -3 => Err(EncodeError::InitParamsNotCalled),
-            -4 => Err(EncodeError::PsychoAcousticError),
-            _ => {
-                if retn < 0 {
-                    Err(EncodeError::Unknown(retn))
-                } else {
-                    Ok(retn as usize)
-                }
-            }
-        }
+        handle_encode_error(retn)
     }
     pub fn encode_flush_nogap(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
         let retn = unsafe {
             ffi::lame_encode_flush_nogap(self.ptr, mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
         };
-
-        match retn {
-            -1 => Err(EncodeError::OutputBufferTooSmall),
-            -2 => Err(EncodeError::NoMem),
-            -3 => Err(EncodeError::InitParamsNotCalled),
-            -4 => Err(EncodeError::PsychoAcousticError),
-            _ => {
-                if retn < 0 {
-                    Err(EncodeError::Unknown(retn))
-                } else {
-                    Ok(retn as usize)
-                }
-            }
-        }
+        handle_encode_error(retn)
     }
 }
 
