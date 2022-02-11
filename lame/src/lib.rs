@@ -151,13 +151,6 @@ impl Lame {
             ffi::lame_init_params(self.ptr)
         })
     }
-
-    pub fn encode_flush_nogap(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
-        let retn = unsafe {
-            ffi::lame_encode_flush_nogap(self.ptr, mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
-        };
-        handle_encode_error(retn)
-    }
 }
 
 impl Drop for Lame {
@@ -171,6 +164,16 @@ pub trait Encode<S> {
     /// Encodes PCM data into MP3 frames. The `pcm_left` and `pcm_right`
     /// buffers must be of the same length, or this function will panic.
     fn encode(&mut self, pcm_left: &[S], pcm_right: &[S], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError>;
+
+    fn flush(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError>;
+    fn flush_nogap(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError>;
+
+    fn encode_flushing(&mut self, pcm_left: &[S], pcm_right: &[S], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        let encoded_len = self.encode(pcm_left, pcm_right, mp3_buffer)?;
+        let tail_buffer = &mut mp3_buffer[encoded_len..];
+        let tail_length = self.flush_nogap(tail_buffer)?;
+        Ok(encoded_len + tail_length)
+    }
 }
 
 impl Encode<i16> for Lame {
@@ -185,6 +188,20 @@ impl Encode<i16> for Lame {
         };
         handle_encode_error(retn)
     }
+
+    fn flush(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        let retn = unsafe {
+            ffi::lame_encode_flush(self.ptr, mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
+        };
+        handle_encode_error(retn)
+    }
+
+    fn flush_nogap(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        let retn = unsafe {
+            ffi::lame_encode_flush_nogap(self.ptr, mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
+        };
+        handle_encode_error(retn)
+    }
 }
 
 impl Encode<f32> for Lame {
@@ -194,8 +211,22 @@ impl Encode<f32> for Lame {
         }
         let retn = unsafe {
             ffi::lame_encode_buffer_ieee_float(self.ptr,
-                                    pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
-                                    mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
+                                               pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
+                                               mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
+        };
+        handle_encode_error(retn)
+    }
+
+    fn flush(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        let retn = unsafe {
+            ffi::lame_encode_flush(self.ptr, mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
+        };
+        handle_encode_error(retn)
+    }
+
+    fn flush_nogap(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        let retn = unsafe {
+            ffi::lame_encode_flush_nogap(self.ptr, mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
         };
         handle_encode_error(retn)
     }

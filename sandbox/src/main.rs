@@ -1,4 +1,3 @@
-
 use std::borrow::{Borrow, BorrowMut};
 use std::fs::File;
 use std::io::Write;
@@ -114,16 +113,10 @@ fn main2() {
     println!("buf_length = {}", buf_length);
 
     let mut mp3_buffer: Vec<u8> = vec![0_u8; buf_length as usize];
-    let mp3_length = lame.encode(buffer.0.borrow(), buffer.1.borrow(), mp3_buffer.borrow_mut()).unwrap();
+    let mp3_length = lame.encode_flushing(buffer.0.borrow(), buffer.1.borrow(), mp3_buffer.borrow_mut()).unwrap();
     let _ = mp3_buffer.split_off(mp3_length);
     println!("mp3_length = {}", mp3_length);
 
-    let mut tail_buffer: Vec<u8> = vec![0_u8; buf_length as usize];
-    let tail_length = lame.encode_flush_nogap(tail_buffer.borrow_mut()).unwrap();
-    let _ = tail_buffer.split_off(tail_length);
-    println!("tail_length = {}", tail_length);
-
-    mp3_buffer.append(tail_buffer.borrow_mut());
     let mut file = File::create("testresources/out.mp3").unwrap();
     file.write_all(mp3_buffer.borrow()).unwrap();
     file.flush().unwrap();
