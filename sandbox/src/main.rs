@@ -1,11 +1,10 @@
-extern crate sandbox;
 
 use std::borrow::{Borrow, BorrowMut};
 use std::fs::File;
 use std::io::Write;
 use hound;
 use hound::{SampleFormat, WavSpec};
-use lame::Lame;
+use lame::{Encode, Lame};
 
 fn to_string(spec: WavSpec) -> String {
     return format!("{}ch {}Hz {}bit {}",
@@ -115,7 +114,7 @@ fn main2() {
     println!("buf_length = {}", buf_length);
 
     let mut mp3_buffer: Vec<u8> = vec![0_u8; buf_length as usize];
-    let mp3_length = lame.encode_float(buffer.0.borrow(), buffer.1.borrow(), mp3_buffer.borrow_mut()).unwrap();
+    let mp3_length = lame.encode(buffer.0.borrow(), buffer.1.borrow(), mp3_buffer.borrow_mut()).unwrap();
     let _ = mp3_buffer.split_off(mp3_length);
     println!("mp3_length = {}", mp3_length);
 

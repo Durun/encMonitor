@@ -152,33 +152,6 @@ impl Lame {
         })
     }
 
-    /// Encodes PCM data into MP3 frames. The `pcm_left` and `pcm_right`
-    /// buffers must be of the same length, or this function will panic.
-    pub fn encode(&mut self, pcm_left: &[i16], pcm_right: &[i16], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
-        if pcm_left.len() != pcm_right.len() {
-            panic!("left and right channels must have same number of samples!");
-        }
-
-        let retn = unsafe {
-            ffi::lame_encode_buffer(self.ptr,
-                                    pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
-                                    mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
-        };
-        handle_encode_error(retn)
-    }
-
-    pub fn encode_float(&mut self, pcm_left: &[f32], pcm_right: &[f32], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
-        if pcm_left.len() != pcm_right.len() {
-            panic!("left and right channels must have same number of samples!");
-        }
-
-        let retn = unsafe {
-            ffi::lame_encode_buffer_ieee_float(self.ptr,
-                                    pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
-                                    mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
-        };
-        handle_encode_error(retn)
-    }
     pub fn encode_flush_nogap(&mut self, mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
         let retn = unsafe {
             ffi::lame_encode_flush_nogap(self.ptr, mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
@@ -190,5 +163,40 @@ impl Lame {
 impl Drop for Lame {
     fn drop(&mut self) {
         unsafe { ffi::lame_close(self.ptr) };
+    }
+}
+
+
+pub trait Encode<S> {
+    /// Encodes PCM data into MP3 frames. The `pcm_left` and `pcm_right`
+    /// buffers must be of the same length, or this function will panic.
+    fn encode(&mut self, pcm_left: &[S], pcm_right: &[S], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError>;
+}
+
+impl Encode<i16> for Lame {
+    fn encode(&mut self, pcm_left: &[i16], pcm_right: &[i16], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        if pcm_left.len() != pcm_right.len() {
+            panic!("left and right channels must have same number of samples!");
+        }
+        let retn = unsafe {
+            ffi::lame_encode_buffer(self.ptr,
+                                    pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
+                                    mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
+        };
+        handle_encode_error(retn)
+    }
+}
+
+impl Encode<f32> for Lame {
+    fn encode(&mut self, pcm_left: &[f32], pcm_right: &[f32], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        if pcm_left.len() != pcm_right.len() {
+            panic!("left and right channels must have same number of samples!");
+        }
+        let retn = unsafe {
+            ffi::lame_encode_buffer_ieee_float(self.ptr,
+                                    pcm_left.as_ptr(), pcm_right.as_ptr(), int_size(pcm_left.len()),
+                                    mp3_buffer.as_mut_ptr(), int_size(mp3_buffer.len()))
+        };
+        handle_encode_error(retn)
     }
 }
