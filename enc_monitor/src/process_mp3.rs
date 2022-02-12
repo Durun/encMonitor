@@ -22,7 +22,7 @@ impl Mp3Processor {
             None => None,
             Some(lame) => Some(Mp3Processor {
                 lame,
-                byte_buffer: Vec::with_capacity(BYTE_BUF_SIZE),
+                byte_buffer: vec![0; BYTE_BUF_SIZE],
             }),
         }
     }

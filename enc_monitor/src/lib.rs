@@ -10,6 +10,7 @@ use vst::buffer::AudioBuffer;
 use vst::host::Host;
 use vst::plugin::{CanDo, Category, HostCallback, Info, Plugin, PluginParameters};
 use vst::util::AtomicFloat;
+use crate::process::ProcessStereo;
 use crate::process_mp3::Mp3Processor;
 
 
@@ -115,7 +116,7 @@ impl Plugin for EncMonitor {
         let mut outputs = outputs.split_at_mut(1);
         let outputs = (&mut outputs.0[0], &mut outputs.1[0]);
 
-        //self.processor_mp3.process(inputs, outputs).unwrap();
+        self.processor_mp3.process(inputs, outputs).unwrap();
     }
 
     // Return the parameter object. This method can be omitted if the
