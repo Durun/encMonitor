@@ -53,6 +53,7 @@ impl ProcessStereo for Mp3Processor {
         // write into output_buffers
         let (out_l, out_r) = output_buffers;
         for (((in_l, in_r), out_l), out_r) in samples.into_iter()
+            .skip(1153) // TODO?
             .zip(out_l.iter_mut())
             .zip(out_r.iter_mut()) {
             *out_l = in_l;
