@@ -151,6 +151,16 @@ impl Lame {
             ffi::lame_init_params(self.ptr)
         })
     }
+
+    pub fn encoder_delay(&mut self) -> usize {
+        let retn = unsafe { ffi::lame_get_encoder_delay(self.ptr) };
+        retn as usize
+    }
+
+    pub fn encoder_padding(&mut self) -> usize {
+        let retn = unsafe { ffi::lame_get_encoder_padding(self.ptr) };
+        retn as usize
+    }
 }
 
 impl Drop for Lame {

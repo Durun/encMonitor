@@ -25,4 +25,6 @@ extern "C" {
                              mp3buf: *mut u8, mp3buf_size: c_int) -> c_int;
     pub fn lame_encode_flush_nogap(ptr: LamePtr,
                                    mp3buf: *mut u8, mp3buf_size: c_int) -> c_int;
+    pub fn lame_get_encoder_delay(ptr: LamePtr) -> c_int;
+    pub fn lame_get_encoder_padding(ptr: LamePtr) -> c_int;
 }
