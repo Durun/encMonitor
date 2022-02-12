@@ -5,13 +5,11 @@ mod process_mp3;
 extern crate vst;
 
 use std::sync::Arc;
-
 use vst::api::Supported;
 use vst::buffer::AudioBuffer;
 use vst::host::Host;
 use vst::plugin::{CanDo, Category, HostCallback, Info, Plugin, PluginParameters};
 use vst::util::AtomicFloat;
-use crate::process::ProcessStereo;
 use crate::process_mp3::Mp3Processor;
 
 
@@ -86,13 +84,17 @@ impl Plugin for EncMonitor {
         }
     }
     fn new(_host: HostCallback) -> Self {
-        let time_info = _host.get_time_info(0)
+        println!("Initializing enc_monitor...");
+
+        let time_info = _host.get_time_info(!0)// TODO
             .unwrap();
 
         let mut processor_mp3 = Mp3Processor::new()
             .unwrap();
-        processor_mp3.set_parameters(time_info.sample_rate as u32, 320)
+        processor_mp3.set_parameters(44100, 320)
             .unwrap();
+
+        println!("  Sample Rate: {}Hz", time_info.sample_rate); // 0Hz
 
         EncMonitor {
             params: Arc::new(EncMonitorParameters::default()),
@@ -113,8 +115,7 @@ impl Plugin for EncMonitor {
         let mut outputs = outputs.split_at_mut(1);
         let outputs = (&mut outputs.0[0], &mut outputs.1[0]);
 
-        self.processor_mp3.process(inputs, outputs)
-            .unwrap();
+        //self.processor_mp3.process(inputs, outputs).unwrap();
     }
 
     // Return the parameter object. This method can be omitted if the
