@@ -15,13 +15,13 @@ use crate::process_mp3::Mp3Processor;
 
 
 struct EncMonitorParameters {
-    threshold: AtomicFloat,
+    bypass: AtomicFloat,
 }
 
 impl Default for EncMonitorParameters {
     fn default() -> Self {
         EncMonitorParameters {
-            threshold: AtomicFloat::new(1.0),
+            bypass: AtomicFloat::new(0.0),
         }
     }
 }
@@ -31,7 +31,7 @@ impl PluginParameters for EncMonitorParameters {
     // format it into a string that makes the most since.
     fn get_parameter_text(&self, index: i32) -> String {
         match index {
-            0 => format!("{:.2}", self.threshold.get()),
+            0 => format!("{:.2}", self.bypass.get()),
             _ => "".to_string(),
         }
     }
@@ -39,7 +39,7 @@ impl PluginParameters for EncMonitorParameters {
     // This shows the control's name.
     fn get_parameter_name(&self, index: i32) -> String {
         match index {
-            0 => "Threshold",
+            0 => "Bypass",
             _ => "",
         }
             .to_string()
@@ -48,7 +48,7 @@ impl PluginParameters for EncMonitorParameters {
     // the `get_parameter` function reads the value of a parameter.
     fn get_parameter(&self, index: i32) -> f32 {
         match index {
-            0 => self.threshold.get(),
+            0 => self.bypass.get(),
             _ => 0.0,
         }
     }
@@ -57,7 +57,7 @@ impl PluginParameters for EncMonitorParameters {
     fn set_parameter(&self, index: i32, val: f32) {
         #[allow(clippy::single_match)]
         match index {
-            0 => self.threshold.set(val),
+            0 => self.bypass.set(val),
             _ => (),
         }
     }
@@ -116,7 +116,18 @@ impl Plugin for EncMonitor {
         let mut outputs = outputs.split_at_mut(1);
         let outputs = (&mut outputs.0[0], &mut outputs.1[0]);
 
-        self.processor_mp3.process(inputs, outputs).unwrap();
+        if 0.5 < self.params.bypass.get() {
+            // bypass
+            for (input, output) in inputs.0.iter().zip(outputs.0.iter_mut()) {
+                *output = *input;
+            }
+            for (input, output) in inputs.1.iter().zip(outputs.1.iter_mut()) {
+                *output = *input;
+            }
+        } else {
+            // process
+            self.processor_mp3.process(inputs, outputs).unwrap();
+        }
     }
 
     // Return the parameter object. This method can be omitted if the
