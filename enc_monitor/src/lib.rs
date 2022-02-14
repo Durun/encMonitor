@@ -1,5 +1,6 @@
 mod process;
 mod process_mp3;
+mod process_bypass;
 
 #[macro_use]
 extern crate vst;
@@ -11,6 +12,7 @@ use vst::host::Host;
 use vst::plugin::{CanDo, Category, HostCallback, Info, Plugin, PluginParameters};
 use vst::util::AtomicFloat;
 use crate::process::ProcessStereo;
+use crate::process_bypass::BypassProcessor;
 use crate::process_mp3::Mp3Processor;
 
 
@@ -66,6 +68,7 @@ impl PluginParameters for EncMonitorParameters {
 #[derive(Default)]
 struct EncMonitor {
     params: Arc<EncMonitorParameters>,
+    processor_bypass: BypassProcessor,
     processor_mp3: Mp3Processor,
 }
 
@@ -99,6 +102,7 @@ impl Plugin for EncMonitor {
 
         EncMonitor {
             params: Arc::new(EncMonitorParameters::default()),
+            processor_bypass: BypassProcessor::default(),
             processor_mp3,
         }
     }
@@ -118,12 +122,7 @@ impl Plugin for EncMonitor {
 
         if 0.5 < self.params.bypass.get() {
             // bypass
-            for (input, output) in inputs.0.iter().zip(outputs.0.iter_mut()) {
-                *output = *input;
-            }
-            for (input, output) in inputs.1.iter().zip(outputs.1.iter_mut()) {
-                *output = *input;
-            }
+            self.processor_bypass.process(inputs, outputs).unwrap();
         } else {
             // process
             self.processor_mp3.process(inputs, outputs).unwrap();
