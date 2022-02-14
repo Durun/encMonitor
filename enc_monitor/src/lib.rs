@@ -1,6 +1,7 @@
 mod process;
 mod process_mp3;
 mod process_bypass;
+mod stereo_buffer;
 
 #[macro_use]
 extern crate vst;
@@ -14,6 +15,9 @@ use vst::util::AtomicFloat;
 use crate::process::ProcessStereo;
 use crate::process_bypass::BypassProcessor;
 use crate::process_mp3::Mp3Processor;
+use crate::stereo_buffer::StereoBuffer;
+
+const DELAY_SAMPLES: usize = 44100;
 
 
 struct EncMonitorParameters {
@@ -70,6 +74,7 @@ struct EncMonitor {
     params: Arc<EncMonitorParameters>,
     processor_bypass: BypassProcessor,
     processor_mp3: Mp3Processor,
+    delay_buffer: StereoBuffer<f32>,
 }
 
 impl Plugin for EncMonitor {
@@ -100,10 +105,14 @@ impl Plugin for EncMonitor {
 
         println!("  Sample Rate: {}Hz", time_info.sample_rate); // 0Hz
 
+        let mut delay_buffer = StereoBuffer::new(DELAY_SAMPLES * 2);
+        delay_buffer.enqueue_padding(DELAY_SAMPLES);
+
         EncMonitor {
             params: Arc::new(EncMonitorParameters::default()),
             processor_bypass: BypassProcessor::default(),
             processor_mp3,
+            delay_buffer,
         }
     }
 
@@ -120,12 +129,30 @@ impl Plugin for EncMonitor {
         let mut outputs = outputs.split_at_mut(1);
         let outputs = (&mut outputs.0[0], &mut outputs.1[0]);
 
+        let mut tmp_buffer_l = vec![0_f32; inputs.0.len()];
+        let mut tmp_buffer_r = vec![0_f32; inputs.1.len()];
+        /*
         if 0.5 < self.params.bypass.get() {
             // bypass
             self.processor_bypass.process(inputs, outputs).unwrap();
         } else {
             // process
             self.processor_mp3.process(inputs, outputs).unwrap();
+        }
+         */
+        let processed_length = self.processor_bypass.process(inputs, (&mut tmp_buffer_l[..], &mut tmp_buffer_r[..]))
+            .unwrap();
+        for (&l, &r) in tmp_buffer_l.iter().take(processed_length).zip(tmp_buffer_r.iter().take(processed_length)) {
+            self.delay_buffer.enqueue((l, r));
+        }
+
+        let len = inputs.0.len();
+        let (buf_iter_l, buf_iter_r, buf_len) = self.delay_buffer.dequeue(len);
+        for (input, output) in buf_iter_l.zip(outputs.0.iter_mut()) {
+            *output = input
+        }
+        for (input, output) in buf_iter_r.zip(outputs.1.iter_mut()) {
+            *output = input
         }
     }
 
