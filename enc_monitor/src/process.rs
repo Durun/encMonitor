@@ -7,5 +7,6 @@ pub enum Error {
 }
 
 pub trait ProcessStereo {
-    fn process(&mut self, input_buffers: (&[f32], &[f32]), output_buffers: (&mut [f32], &mut [f32])) -> Result<(), Error>;
+    // returns output sample size
+    fn process(&mut self, input_buffers: (&[f32], &[f32]), output_buffers: (&mut [f32], &mut [f32])) -> Result<usize, Error>;
 }
