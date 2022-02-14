@@ -52,7 +52,8 @@ impl Mp3Processor {
         // decode into `samples`
         let (_header, samples) = puremp3::read_mp3(&bytes[..])
             .map_err(|_| Error::InternalError)?;
-        Ok(samples.skip(delay))
+        //Ok(samples.skip(delay + 528)) // TODO
+        Ok(samples)
     }
 }
 

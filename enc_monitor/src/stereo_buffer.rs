@@ -1,6 +1,7 @@
 use std::cmp::min;
 use std::collections::vec_deque::Drain;
 use std::collections::VecDeque;
+use std::ops::Range;
 
 
 pub struct StereoBuffer<S> {
@@ -14,12 +15,16 @@ impl<S> Default for StereoBuffer<S> {
     }
 }
 
-impl <S> StereoBuffer<S> {
+impl<S> StereoBuffer<S> {
     pub fn new(capacity: usize) -> Self {
         StereoBuffer {
             l: VecDeque::with_capacity(capacity),
             r: VecDeque::with_capacity(capacity),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.l.len()
     }
 
     pub fn enqueue(&mut self, sample: (S, S)) {
@@ -33,6 +38,11 @@ impl <S> StereoBuffer<S> {
         let iter_l = self.l.drain(..ret_length);
         let iter_r = self.r.drain(..ret_length);
         (iter_l, iter_r, ret_length)
+    }
+
+    pub fn cancel(&mut self, length: usize) {
+        let _ = self.l.drain(self.l.len() - length..);
+        let _ = self.r.drain(self.r.len() - length..);
     }
 }
 

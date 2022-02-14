@@ -136,12 +136,14 @@ impl Plugin for EncMonitor {
             for (l, r) in self.processor_bypass.process_iter(inputs).unwrap() {
                 self.delay_buffer.enqueue((l, r));
             }
+            //self.delay_buffer.cancel(288);
         } else {
             // process
             for (l, r) in self.processor_mp3.process_iter(inputs).unwrap() {
                 self.delay_buffer.enqueue((l, r));
             }
         }
+        println!("Buffer len: {}", self.delay_buffer.len());
 
         let len = inputs.0.len();
         let (buf_iter_l, buf_iter_r, _) = self.delay_buffer.dequeue(len);
