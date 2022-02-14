@@ -89,6 +89,8 @@ impl Plugin for EncMonitor {
 
             parameters: 1,
 
+            initial_delay: DELAY_SAMPLES as i32,
+
             ..Default::default()
         }
     }
@@ -129,25 +131,20 @@ impl Plugin for EncMonitor {
         let mut outputs = outputs.split_at_mut(1);
         let outputs = (&mut outputs.0[0], &mut outputs.1[0]);
 
-        let mut tmp_buffer_l = vec![0_f32; inputs.0.len()];
-        let mut tmp_buffer_r = vec![0_f32; inputs.1.len()];
-        /*
         if 0.5 < self.params.bypass.get() {
             // bypass
-            self.processor_bypass.process(inputs, outputs).unwrap();
+            for (l, r) in self.processor_bypass.process_iter(inputs).unwrap() {
+                self.delay_buffer.enqueue((l, r));
+            }
         } else {
             // process
-            self.processor_mp3.process(inputs, outputs).unwrap();
-        }
-         */
-        let processed_length = self.processor_bypass.process(inputs, (&mut tmp_buffer_l[..], &mut tmp_buffer_r[..]))
-            .unwrap();
-        for (&l, &r) in tmp_buffer_l.iter().take(processed_length).zip(tmp_buffer_r.iter().take(processed_length)) {
-            self.delay_buffer.enqueue((l, r));
+            for (l, r) in self.processor_mp3.process_iter(inputs).unwrap() {
+                self.delay_buffer.enqueue((l, r));
+            }
         }
 
         let len = inputs.0.len();
-        let (buf_iter_l, buf_iter_r, buf_len) = self.delay_buffer.dequeue(len);
+        let (buf_iter_l, buf_iter_r, _) = self.delay_buffer.dequeue(len);
         for (input, output) in buf_iter_l.zip(outputs.0.iter_mut()) {
             *output = input
         }

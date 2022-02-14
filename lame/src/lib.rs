@@ -184,6 +184,12 @@ pub trait Encode<S> {
         let tail_length = self.flush(tail_buffer)?;
         Ok(encoded_len + tail_length)
     }
+    fn encode_flushing_nogap(&mut self, pcm_left: &[S], pcm_right: &[S], mp3_buffer: &mut [u8]) -> Result<usize, EncodeError> {
+        let encoded_len = self.encode(pcm_left, pcm_right, mp3_buffer)?;
+        let tail_buffer = &mut mp3_buffer[encoded_len..];
+        let tail_length = self.flush_nogap(tail_buffer)?;
+        Ok(encoded_len + tail_length)
+    }
 }
 
 impl Encode<i16> for Lame {

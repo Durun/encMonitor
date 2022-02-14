@@ -34,6 +34,26 @@ impl Mp3Processor {
         self.lame.set_kilobitrate(kilobitrate as i32).map_err(|_| { Error::InternalError })?;
         Ok(())
     }
+
+    pub fn process_iter(&mut self, input_buffers: (&[f32], &[f32])) -> Result<impl Iterator<Item=(f32, f32)> + '_, Error> {
+        // encode into `bytes`
+        let byte_size = self.lame.encode_flushing_nogap(input_buffers.0, input_buffers.1, &mut self.byte_buffer)
+            .map_err(|e| match e {
+                EncodeError::NoMem => Error::NoMem,
+                _ => Error::InternalError,
+            })?;
+        let bytes = &self.byte_buffer[..byte_size];
+
+        let delay = self.lame.encoder_delay();
+        let padding = self.lame.encoder_padding();
+        println!("delay: {}", delay);
+        println!("padding: {}", padding);
+
+        // decode into `samples`
+        let (_header, samples) = puremp3::read_mp3(&bytes[..])
+            .map_err(|_| Error::InternalError)?;
+        Ok(samples.skip(delay))
+    }
 }
 
 impl ProcessStereo for Mp3Processor {

@@ -15,6 +15,15 @@ impl Default for BypassProcessor {
     }
 }
 
+impl BypassProcessor {
+    pub fn process_iter<'a>(&mut self, input_buffers: (&'a[f32], &'a[f32])) -> Result<impl Iterator<Item=(f32, f32)> + 'a, Error> {
+        Ok(
+            input_buffers.0.iter().zip(input_buffers.1.iter())
+                .map(|(&l, &r)| (l, r))
+        )
+    }
+}
+
 impl ProcessStereo for BypassProcessor {
     fn process(&mut self, input_buffers: (&[f32], &[f32]), output_buffers: (&mut [f32], &mut [f32])) -> Result<usize, Error> {
         if output_buffers.0.len() < input_buffers.0.len() {
