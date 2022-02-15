@@ -13,9 +13,6 @@ pub enum EncodeError {
     Unknown(c_int),
 }
 
-
-
-
 fn handle_encode_error(retn: c_int) -> Result<usize, EncodeError> {
     match retn.into() {
         -1 => Err(EncodeError::OutputBufferTooSmall),
