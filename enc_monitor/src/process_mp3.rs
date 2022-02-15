@@ -59,37 +59,16 @@ impl Mp3Processor {
 
 impl ProcessStereo for Mp3Processor {
     fn process(&mut self, input_buffers: (&[f32], &[f32]), output_buffers: (&mut [f32], &mut [f32])) -> Result<usize, Error> {
-        // encode into `bytes`
-        let byte_size = self.lame.encode_flushing(input_buffers.0, input_buffers.1, &mut self.byte_buffer)
-            .map_err(|e| match e {
-                EncodeError::NoMem => Error::NoMem,
-                _ => Error::InternalError,
-            })?;
-        let bytes = &self.byte_buffer[..byte_size];
-
-        let delay = self.lame.encoder_delay();
-        let padding = self.lame.encoder_padding();
-        println!("delay: {}", delay);
-        println!("padding: {}", padding);
-
-        // decode into `samples`
-        let (_header, samples) = puremp3::read_mp3(&bytes[..])
-            .map_err(|_| Error::InternalError)?;
-        let samples: Vec<(f32, f32)> = samples.collect();
-        println!("decoded: {} samples", samples.len());
-        println!("trimmed: {} samples", samples.len() - delay - padding);
-        let output_length = samples.len() - delay - padding;
-
         // write into output_buffers
         let (out_l, out_r) = output_buffers;
-        for (((in_l, in_r), out_l), out_r) in samples.into_iter()
-            .skip(1153) // TODO?
+        let output_length = self.process_iter(input_buffers)?
             .zip(out_l.iter_mut())
-            .zip(out_r.iter_mut()) {
-            *out_l = in_l;
-            *out_r = in_r;
-        }
-
+            .zip(out_r.iter_mut())
+            .map(|(((in_l, in_r), out_l), out_r)| {
+                *out_l = in_l;
+                *out_r = in_r;
+            })
+            .count();
         Ok(output_length)
     }
 }
