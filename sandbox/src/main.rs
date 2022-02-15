@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Write;
 use hound;
 use hound::{SampleFormat, WavSpec};
+use lame::decode::Decode;
 use lame::Lame;
 use lame::encode::Encode;
 
@@ -109,6 +110,7 @@ fn main2() {
     lame.set_channels(2).unwrap();
     lame.set_sample_rate(spec.sample_rate).unwrap();
     lame.set_kilobitrate(kbps).unwrap();
+    println!("{}kbps", lame.kilobitrate());
 
     let buf_length = kbps * 1024 / 8 * (reader.duration() as i32) / (spec.sample_rate as i32) + 1024;
     println!("buf_length = {}", buf_length);
@@ -147,6 +149,27 @@ fn main2() {
     println!("duration: {}", out_reader.duration());
 }
 
+fn main3() {
+    const LENGTH: usize = 8000;
+    const BYTE_BUF_SIZE: usize = 12500 + 7200;
+
+    let mut lame = Lame::new().unwrap();
+    lame.init_params().unwrap();
+
+    let input_l = vec![0.5_f32; LENGTH];
+    let input_r = vec![0.5_f32; LENGTH];
+
+    let mut bytes = vec![0_u8; BYTE_BUF_SIZE];
+    let len = lame.encode(&input_l[..], &input_r[..], &mut bytes[..]).unwrap();
+    let bytes = &bytes[..len];
+    println!("Encoded: byte_size={}", bytes.len());
+
+    let mut output_l = vec![-1_i16; LENGTH * 2];
+    let mut output_r = vec![-1_i16; LENGTH * 2];
+    let len = lame.decode(bytes, &mut output_l[..], &mut output_r[..]).unwrap();
+    println!("Decoded: {} samples", len);
+}
+
 fn main() {
-    main2()
+    main3()
 }
