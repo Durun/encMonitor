@@ -1,7 +1,6 @@
 use std::cmp::min;
 use std::collections::vec_deque::Drain;
 use std::collections::VecDeque;
-use std::ops::Range;
 
 
 pub struct StereoBuffer<S> {

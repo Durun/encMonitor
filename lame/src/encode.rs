@@ -1,6 +1,5 @@
 use crate::ffi;
 use crate::Lame;
-use crate::Error;
 use std::os::raw::c_int;
 
 

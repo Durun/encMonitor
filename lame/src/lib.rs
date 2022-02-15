@@ -4,10 +4,8 @@ pub mod decode;
 
 use std::ptr;
 use std::ops::Drop;
-use std::os::raw::{c_int, c_short};
-use crate::ffi::{LamePtr, HipPtr, mp3data_struct};
-
-const PCM_BUF_SIZE: usize = 1152;
+use std::os::raw::c_int;
+use crate::ffi::{LamePtr, HipPtr};
 
 #[derive(Debug)]
 pub enum Error {

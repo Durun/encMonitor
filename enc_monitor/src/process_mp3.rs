@@ -1,13 +1,17 @@
 use lame::Lame;
 use crate::process::{Error, ProcessStereo};
 use Vec;
+use lame::decode::Decode;
 use lame::encode::{Encode, EncodeError};
 
 const BYTE_BUF_SIZE: usize = 12500 + 7200;
+const PCM_BUF_SIZE: usize = 44100 * 2;
 
 pub struct Mp3Processor {
     lame: Lame,
     byte_buffer: Vec<u8>,
+    pcm_buffer_l: Vec<i16>,
+    pcm_buffer_r: Vec<i16>,
 }
 
 impl Default for Mp3Processor {
@@ -24,6 +28,8 @@ impl Mp3Processor {
             Some(lame) => Some(Mp3Processor {
                 lame,
                 byte_buffer: vec![0; BYTE_BUF_SIZE],
+                pcm_buffer_l: vec![0; PCM_BUF_SIZE],
+                pcm_buffer_r: vec![0; PCM_BUF_SIZE],
             }),
         }
     }
@@ -46,13 +52,16 @@ impl Mp3Processor {
         let bytes = &self.byte_buffer[..byte_size];
 
         let delay = self.lame.encoder_delay();
-        let padding = self.lame.encoder_padding();
         println!("delay: {}", delay);
-        println!("padding: {}", padding);
 
         // decode into `samples`
-        let (_header, samples) = puremp3::read_mp3(&bytes[..])
-            .map_err(|_| Error::InternalError)?;
+        let len = self.lame.decode(bytes, &mut self.pcm_buffer_l[..], &mut self.pcm_buffer_r[..])
+            .unwrap();
+        let samples = self.pcm_buffer_l.iter().take(len).zip(self.pcm_buffer_r.iter().take(len))
+            .map(|(&l, &r)| (
+                (l as f32) / (i16::MAX as f32),
+                (r as f32) / (i16::MAX as f32)
+            ));
         //Ok(samples.skip(delay + 528)) // TODO
         Ok(samples)
     }
