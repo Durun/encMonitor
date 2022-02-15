@@ -17,7 +17,7 @@ use crate::process_bypass::BypassProcessor;
 use crate::process_mp3::Mp3Processor;
 use crate::stereo_buffer::StereoBuffer;
 
-const DELAY_SAMPLES: usize = 44100;
+const DELAY_SAMPLES: usize = 11025;
 
 
 struct EncMonitorParameters {
