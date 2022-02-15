@@ -3,7 +3,8 @@ use std::fs::File;
 use std::io::Write;
 use hound;
 use hound::{SampleFormat, WavSpec};
-use lame::{Encode, Lame};
+use lame::Lame;
+use lame::encode::Encode;
 
 fn to_string(spec: WavSpec) -> String {
     return format!("{}ch {}Hz {}bit {}",
