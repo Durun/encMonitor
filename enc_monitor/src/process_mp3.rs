@@ -1,6 +1,7 @@
-use lame::{Encode, EncodeError, Lame};
+use lame::Lame;
 use crate::process::{Error, ProcessStereo};
 use Vec;
+use lame::encode::{Encode, EncodeError};
 
 const BYTE_BUF_SIZE: usize = 12500 + 7200;
 
