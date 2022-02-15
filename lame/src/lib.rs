@@ -2,9 +2,10 @@ mod ffi;
 
 use std::ptr;
 use std::ops::Drop;
-use ffi::LamePtr;
-use std::os::raw::c_int;
-use std::convert::From;
+use std::os::raw::{c_int, c_short};
+use crate::ffi::{LamePtr, HipPtr, mp3data_struct};
+
+const PCM_BUF_SIZE: usize = 1152;
 
 #[derive(Debug)]
 pub enum Error {
@@ -71,9 +72,17 @@ pub enum EncodeError {
     Unknown(c_int),
 }
 
+#[derive(Debug)]
+pub enum DecodeError {
+    OutputBufferTooSmall,
+    NoHeader,
+    Unknown(c_int),
+}
+
 /// Represents a Lame encoder context.
 pub struct Lame {
     ptr: LamePtr,
+    hip: HipPtr,
 }
 
 impl Lame {
@@ -84,12 +93,22 @@ impl Lame {
         let ctx = unsafe { ffi::lame_init() };
 
         if ctx == ptr::null_mut() {
-            None
-        } else {
-            Some(Lame { ptr: ctx })
+            return None;
         }
+
+        let hip = unsafe { ffi::hip_decode_init() };
+        if hip == ptr::null_mut() {
+            unsafe { ffi::lame_close(ctx) };
+            return None;
+        }
+
+        Some(Lame {
+            ptr: ctx,
+            hip,
+        })
     }
 
+    // Encoder
     /// Sample rate of input PCM data. Defaults to 44100 Hz.
     pub fn sample_rate(&self) -> u32 {
         unsafe { ffi::lame_get_in_samplerate(self.ptr) as u32 }
@@ -161,10 +180,49 @@ impl Lame {
         let retn = unsafe { ffi::lame_get_encoder_padding(self.ptr) };
         retn as usize
     }
+
+    // Decoder
+    // TODO: trait
+    // returns (mp3data, delay, padding)
+    fn decode_header(&mut self, mp3buffer: &[u8]) -> Result<(mp3data_struct, Option<u32>, Option<u32>), DecodeError> {
+        let mut pcm_l: [c_short; PCM_BUF_SIZE] = [0; PCM_BUF_SIZE];
+        let mut pcm_r: [c_short; PCM_BUF_SIZE] = [0; PCM_BUF_SIZE];
+        let mut mp3data = mp3data_struct::default();
+        let mut delay: c_int = -1;
+        let mut padding: c_int = -1;
+        for pos in 0..mp3buffer.len() {
+            let decoded_n = unsafe {
+                ffi::hip_decode1_headersB(self.hip,
+                                          &mp3buffer[pos], mp3buffer.len() - pos,
+                                          pcm_l.as_mut_ptr(), pcm_r.as_mut_ptr(),
+                                          &mut mp3data, &mut delay, &mut padding)
+            };
+            if decoded_n < 0 { return Err(DecodeError::Unknown(decoded_n)); }
+            if mp3data.header_parsed != 0 { break; }
+        }
+        if mp3data.header_parsed == 0 { return Err(DecodeError::NoHeader); }
+
+        let delay = if 0 <= delay { Some(delay as u32) } else { None };
+        let padding = if 0 <= padding { Some(padding as u32) } else { None };
+        Ok((mp3data, delay, padding))
+    }
+
+    pub fn decode(&mut self, mp3buffer: &[u8], pcm_buffer_l: &mut [i16], pcm_buffer_r: &mut [i16]) -> Result<usize, DecodeError> {
+        let retn = unsafe {
+            ffi::hip_decode(self.hip,
+                            &mp3buffer[0], mp3buffer.len(),
+                            pcm_buffer_l.as_mut_ptr(), pcm_buffer_r.as_mut_ptr())
+        };
+        if retn < 0 { return Err(DecodeError::Unknown(retn)); }
+        let decoded_samples = retn;
+
+        Ok(decoded_samples as usize)
+    }
 }
 
 impl Drop for Lame {
     fn drop(&mut self) {
+        unsafe { ffi::hip_decode_exit(self.hip) };
         unsafe { ffi::lame_close(self.ptr) };
     }
 }
