@@ -10,5 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 vst = "0.2.1"
-puremp3 = "0.1.0"
 lame = { path = "../lame" }
