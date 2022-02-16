@@ -17,7 +17,7 @@ impl Decode<i16> for Lame {
     fn decode(&mut self, mp3buffer: &[u8], pcm_buffer_l: &mut [i16], pcm_buffer_r: &mut [i16]) -> Result<usize, DecodeError> {
         let retn = unsafe {
             ffi::hip_decode(self.hip,
-                            &mp3buffer[0], mp3buffer.len(),
+                            mp3buffer.as_ptr(), mp3buffer.len(),
                             pcm_buffer_l.as_mut_ptr(), pcm_buffer_r.as_mut_ptr())
         };
         if retn < 0 { return Err(DecodeError::Unknown(retn)); }
