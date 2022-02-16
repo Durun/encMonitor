@@ -51,9 +51,6 @@ impl Mp3Processor {
             })?;
         let bytes = &self.byte_buffer[..byte_size];
 
-        let delay = self.lame.encoder_delay();
-        println!("delay: {}", delay);
-
         // decode into `samples`
         let len = self.lame.decode(bytes, &mut self.pcm_buffer_l[..], &mut self.pcm_buffer_r[..])
             .unwrap();
@@ -62,7 +59,6 @@ impl Mp3Processor {
                 (l as f32) / (i16::MAX as f32),
                 (r as f32) / (i16::MAX as f32)
             ));
-        //Ok(samples.skip(delay + 528)) // TODO
         Ok(samples)
     }
 }
