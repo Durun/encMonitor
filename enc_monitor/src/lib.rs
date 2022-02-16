@@ -97,15 +97,15 @@ impl Plugin for EncMonitor {
     fn new(_host: HostCallback) -> Self {
         println!("Initializing enc_monitor...");
 
-        let time_info = _host.get_time_info(!0)// TODO
-            .unwrap();
+        //let time_info = _host.get_time_info(!0)// TODO
+        //    .unwrap();
 
         let mut processor_mp3 = Mp3Processor::new()
             .unwrap();
         processor_mp3.set_parameters(44100, 320)
             .unwrap();
 
-        println!("  Sample Rate: {}Hz", time_info.sample_rate); // 0Hz
+        //println!("  Sample Rate: {}Hz", time_info.sample_rate); // 0Hz
 
         let mut delay_buffer = StereoBuffer::new(DELAY_SAMPLES * 2);
         delay_buffer.enqueue_padding(DELAY_SAMPLES);
@@ -121,7 +121,7 @@ impl Plugin for EncMonitor {
     fn can_do(&self, can_do: CanDo) -> Supported {
         match can_do {
             CanDo::ReceiveMidiEvent => Supported::No,
-            _ => Supported::Maybe,
+            _ => Supported::No,
         }
     }
 
